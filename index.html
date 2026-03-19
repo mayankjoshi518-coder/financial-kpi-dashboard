@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial KPI Dashboard – UK Retail Sales 2024</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface2:  #22263a;
+      --border:    #2e3350;
+      --accent:    #4f8ef7;
+      --accent2:   #7c6af7;
+      --green:     #2ecc71;
+      --red:       #e74c3c;
+      --amber:     #f39c12;
+      --text:      #e8ecf4;
+      --muted:     #8892b0;
+      --font:      'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      padding: 0 0 48px;
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, #141828 0%, #1a2040 60%, #0f1117 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 40px 24px;
+    }
+    .header-inner { max-width: 1400px; margin: 0 auto; }
+    .header-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -.5px;
+      background: linear-gradient(90deg, #fff 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header-sub {
+      font-size: .85rem;
+      color: var(--muted);
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: .75rem;
+      color: var(--muted);
+    }
+
+    /* LAYOUT */
+    .container { max-width: 1400px; margin: 0 auto; padding: 0 32px; }
+    .section-label {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 32px 0 14px;
+    }
+
+    /* KPI CARDS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 12px 12px 0 0;
+    }
+    .kpi-card.blue::before   { background: var(--accent); }
+    .kpi-card.purple::before { background: var(--accent2); }
+    .kpi-card.green::before  { background: var(--green); }
+    .kpi-card.amber::before  { background: var(--amber); }
+    .kpi-card.red::before    { background: var(--red); }
+    .kpi-card:hover { border-color: var(--accent); }
+    .kpi-label {
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text);
+    }
+    .kpi-value .unit { font-size: 1rem; color: var(--muted); margin-left: 1px; }
+    .kpi-sub {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tag-pos { color: var(--green); }
+    .tag-neg { color: var(--red); }
+    .tag-neu { color: var(--amber); }
+
+    /* CHART CARDS */
+    .chart-grid-3 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .chart-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 20px 12px;
+    }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-title {
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .chart-subtitle {
+      font-size: .73rem;
+      color: #5a6278;
+      margin-bottom: 12px;
+    }
+
+    /* VARIANCE TABLE */
+    .variance-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    .variance-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: .7rem;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .variance-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #1e2235;
+      vertical-align: middle;
+    }
+    .variance-table tr:last-child td { border-bottom: none; }
+    .variance-table tr:hover td { background: var(--surface2); }
+    .rag-green { color: var(--green); font-weight: 600; }
+    .rag-amber { color: var(--amber); font-weight: 600; }
+    .rag-red   { color: var(--red);   font-weight: 600; }
+    .rag-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .dot-green { background: var(--green); }
+    .dot-amber { background: var(--amber); }
+    .dot-red   { background: var(--red); }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 32px;
+      color: #3d4460;
+      font-size: .75rem;
+    }
+
+    @media (max-width: 900px) {
+      .chart-grid-3, .chart-grid-2 { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .container { padding: 0 16px; }
+      header { padding: 20px 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-title">&#128202; Financial KPI Dashboard</div>
+    <div class="header-sub">
+      UK Retail Sales Performance &nbsp;|&nbsp; January &ndash; April 2024
+      <span class="badge">4 Regions</span>
+      <span class="badge">3 Product Categories</span>
+      <span class="badge">Real Data &middot; retail_sales_sample.csv</span>
+      <span class="badge">Interactive &middot; Plotly.js</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- KPI CARDS -->
+  <div class="section-label">Executive KPIs</div>
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Total Revenue (Actual)</div>
+      <div class="kpi-value">&pound;4.92<span class="unit">M</span></div>
+      <div class="kpi-sub"><span class="tag-neg">&#9660; &pound;49K vs Budget</span> &nbsp;|&nbsp; &minus;1.0% variance</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">Revenue Budget</div>
+      <div class="kpi-value">&pound;4.97<span class="unit">M</span></div>
+      <div class="kpi-sub">Forecast: <strong style="color:var(--text)">&pound;5.02M</strong></div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Gross Margin %</div>
+      <div class="kpi-value">41.9<span class="unit">%</span></div>
+      <div class="kpi-sub">Gross Profit: <strong style="color:var(--text)">&pound;2.06M</strong></div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">EBITDA Margin %</div>
+      <div class="kpi-value">17.6<span class="unit">%</span></div>
+      <div class="kpi-sub">EBITDA: <strong style="color:var(--text)">&pound;867K</strong></div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Cost-to-Revenue Ratio</div>
+      <div class="kpi-value">82.4<span class="unit">%</span></div>
+      <div class="kpi-sub">COGS + OpEx / Revenue</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Revenue MoM Growth</div>
+      <div class="kpi-value">+5.5<span class="unit">%</span></div>
+      <div class="kpi-sub">Jan &rarr; Apr &nbsp; <span class="tag-pos">&#9650; &pound;65K</span></div>
+    </div>
+  </div>
+
+  <!-- ROW 1: Revenue Trend + Category Donut -->
+  <div class="section-label">Revenue Trends &amp; Mix</div>
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <div class="chart-title">Monthly Revenue &middot; Actual vs Budget vs Forecast</div>
+      <div class="chart-subtitle">All regions &amp; categories combined &middot; &pound; thousands</div>
+      <div id="chart-revenue-trend" style="height:280px;"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Revenue Mix by Category</div>
+      <div class="chart-subtitle">Jan &ndash; Apr 2024 &middot; Share of total revenue</div>
+      <div id="chart-category-donut" style="height:280px;"></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Region bars + Margin by Category -->
+  <div class="section-label">Regional &amp; Segment Profitability</div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title">Revenue by Region &middot; Monthly Breakdown</div>
+      <div class="chart-subtitle">Stacked bar &middot; &pound; thousands</div>
+      <div id="chart-region-bar" style="height:280px;"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Profit Margin by Product Category</div>
+      <div class="chart-subtitle">Gross margin % and EBITDA margin % per segment</div>
+      <div id="chart-margin-category" style="height:280px;"></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Waterfall + Variance Bar -->
+  <div class="section-label">Cost Structure &amp; Budget Variance</div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title">Cost Waterfall &middot; Full-Year P&amp;L Bridge</div>
+      <div class="chart-subtitle">Revenue &rarr; COGS &rarr; Gross Profit &rarr; OpEx &rarr; EBITDA &middot; &pound;M</div>
+      <div id="chart-waterfall" style="height:300px;"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Budget Variance &middot; RAG Status by Region</div>
+      <div class="chart-subtitle">Actual vs Budget &middot; % variance &middot; Red / Amber / Green</div>
+      <div id="chart-variance-bar" style="height:300px;"></div>
+    </div>
+  </div>
+
+  <!-- ROW 4: Variance Table -->
+  <div class="section-label">Detailed Budget Variance &middot; By Region &amp; Month</div>
+  <div class="chart-card" style="margin-bottom:16px; overflow-x:auto;">
+    <div class="chart-title" style="margin-bottom:16px;">Revenue Variance Analysis &middot; Actual vs Budget (RAG)</div>
+    <table class="variance-table" id="variance-table"></table>
+  </div>
+
+  <!-- ROW 5: Heatmap + OpEx -->
+  <div class="section-label">Operating Efficiency</div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title">Revenue Heatmap &middot; Region &times; Month</div>
+      <div class="chart-subtitle">Actual revenue (&pound;) colour intensity</div>
+      <div id="chart-heatmap" style="height:260px;"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Operating Expenses by Region &middot; Monthly</div>
+      <div class="chart-subtitle">Grouped bar &middot; &pound; thousands</div>
+      <div id="chart-opex" style="height:260px;"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Financial KPI Dashboard &middot; UK Retail Sales Sample Data &middot; Jan&ndash;Apr 2024 &middot; Built with Plotly.js &middot; Mayank Joshi Portfolio
+</footer>
+
+<script>
+/* ================================================================
+   RAW DATA  (retail_sales_sample.csv, 32 rows)
+   Indices: 0=date, 1=region, 2=category,
+            3=rev_act, 4=rev_bud, 5=rev_fcast, 6=cogs, 7=opex
+================================================================ */
+var RAW = [
+  ["2024-01","London","Electronics",285000,270000,272000,156750,71250],
+  ["2024-01","London","Clothing",142000,150000,148000,85200,35500],
+  ["2024-01","South East","Electronics",198000,195000,196000,108900,49500],
+  ["2024-01","South East","Food & Bev",95000,90000,92000,66500,19000],
+  ["2024-01","North West","Electronics",145000,165000,160000,79750,36250],
+  ["2024-01","North West","Clothing",88000,100000,97000,52800,22000],
+  ["2024-01","Midlands","Electronics",165000,162000,163000,90750,41250],
+  ["2024-01","Midlands","Food & Bev",72000,70000,71000,50400,14400],
+  ["2024-02","London","Electronics",295000,275000,282000,162250,73750],
+  ["2024-02","London","Clothing",148000,155000,151000,88800,37000],
+  ["2024-02","South East","Electronics",208000,200000,202000,114400,52000],
+  ["2024-02","South East","Food & Bev",98000,93000,95000,68600,19600],
+  ["2024-02","North West","Electronics",140000,168000,163000,77000,35000],
+  ["2024-02","North West","Clothing",85000,103000,100000,51000,21250],
+  ["2024-02","Midlands","Electronics",170000,166000,167000,93500,42500],
+  ["2024-02","Midlands","Food & Bev",75000,72000,73000,52500,15000],
+  ["2024-03","London","Electronics",310000,280000,292000,170500,77500],
+  ["2024-03","London","Clothing",155000,158000,155000,93000,38750],
+  ["2024-03","South East","Electronics",215000,205000,208000,118250,53750],
+  ["2024-03","South East","Food & Bev",102000,96000,98000,71400,20400],
+  ["2024-03","North West","Electronics",138000,170000,165000,75900,34500],
+  ["2024-03","North West","Clothing",82000,105000,102000,49200,20500],
+  ["2024-03","Midlands","Electronics",175000,170000,171000,96250,43750],
+  ["2024-03","Midlands","Food & Bev",78000,74000,75000,54600,15600],
+  ["2024-04","London","Electronics",305000,282000,295000,167750,76250],
+  ["2024-04","London","Clothing",150000,160000,157000,90000,37500],
+  ["2024-04","South East","Electronics",220000,208000,212000,121000,55000],
+  ["2024-04","South East","Food & Bev",100000,98000,100000,70000,20000],
+  ["2024-04","North West","Electronics",142000,172000,167000,78100,35500],
+  ["2024-04","North West","Clothing",80000,107000,104000,48000,20000],
+  ["2024-04","Midlands","Electronics",178000,173000,174000,97900,44500],
+  ["2024-04","Midlands","Food & Bev",80000,76000,77000,56000,16000]
+];
+
+var MONTHS  = ["Jan","Feb","Mar","Apr"];
+var MPFX    = ["2024-01","2024-02","2024-03","2024-04"];
+var REGIONS = ["London","South East","North West","Midlands"];
+var CATS    = ["Electronics","Clothing","Food & Bev"];
+var RCOLS   = {"London":"#4f8ef7","South East":"#7c6af7","North West":"#2ecc71","Midlands":"#f39c12"};
+var CCOLS   = {"Electronics":"#4f8ef7","Clothing":"#7c6af7","Food & Bev":"#2ecc71"};
+var C = {accent:"#4f8ef7",accent2:"#7c6af7",green:"#2ecc71",amber:"#f39c12",red:"#e74c3c"};
+
+var plotCfg = {displayModeBar:false,responsive:true};
+
+function darkLayout(extra) {
+  var base = {
+    paper_bgcolor:"#1a1d27",
+    plot_bgcolor:"#1a1d27",
+    font:{family:"'Segoe UI',system-ui,sans-serif",color:"#8892b0",size:11},
+    margin:{t:10,r:16,b:40,l:56}
+  };
+  if (extra) { for (var k in extra) { base[k] = extra[k]; } }
+  return base;
+}
+
+function axisStyle(extra) {
+  var base = {gridcolor:"#2e3350",zerolinecolor:"#2e3350",linecolor:"#2e3350",tickfont:{color:"#8892b0",size:10}};
+  if (extra) { for (var k in extra) { base[k] = extra[k]; } }
+  return base;
+}
+
+function sumField(rows, idx) {
+  return rows.reduce(function(s,r){ return s + r[idx]; }, 0);
+}
+
+function filterRows(fn) {
+  return RAW.filter(fn);
+}
+
+/* ============================================================
+   CHART 1 - Revenue Trend Line (Actual / Budget / Forecast)
+============================================================ */
+(function() {
+  var act   = MPFX.map(function(m){ return sumField(filterRows(function(r){ return r[0]===m; }), 3) / 1000; });
+  var bud   = MPFX.map(function(m){ return sumField(filterRows(function(r){ return r[0]===m; }), 4) / 1000; });
+  var fcast = MPFX.map(function(m){ return sumField(filterRows(function(r){ return r[0]===m; }), 5) / 1000; });
+
+  var traces = [
+    {x:MONTHS,y:act,  name:"Actual",  mode:"lines+markers",line:{color:C.accent, width:2.5},marker:{size:7,color:C.accent}, hovertemplate:"Actual: \u00a3%{y:.0f}K<extra></extra>"},
+    {x:MONTHS,y:bud,  name:"Budget",  mode:"lines+markers",line:{color:C.amber,  width:2,dash:"dash"},marker:{size:6,color:C.amber},  hovertemplate:"Budget: \u00a3%{y:.0f}K<extra></extra>"},
+    {x:MONTHS,y:fcast,name:"Forecast",mode:"lines+markers",line:{color:C.accent2,width:2,dash:"dot"}, marker:{size:6,color:C.accent2},hovertemplate:"Forecast: \u00a3%{y:.0f}K<extra></extra>"}
+  ];
+  var layout = darkLayout({
+    legend:{orientation:"h",y:1.14,x:.5,xanchor:"center",bgcolor:"transparent",font:{color:"#8892b0",size:10}},
+    xaxis:axisStyle(),
+    yaxis:axisStyle({title:{text:"\u00a3 Thousands",font:{color:"#5a6278",size:10}},tickprefix:"\u00a3",ticksuffix:"K"}),
+    hovermode:"x unified"
+  });
+  Plotly.newPlot("chart-revenue-trend", traces, layout, plotCfg);
+})();
+
+/* ============================================================
+   CHART 2 - Category Donut
+============================================================ */
+(function() {
+  var vals = CATS.map(function(c){ return sumField(filterRows(function(r){ return r[2]===c; }), 3); });
+  var total = vals.reduce(function(a,b){ return a+b; }, 0);
+  var trace = [{
+    labels:CATS, values:vals, type:"pie", hole:.55,
+    marker:{colors:[C.accent,C.accent2,C.green],line:{color:"#1a1d27",width:2}},
+    textinfo:"label+percent",
+    textfont:{color:"#e8ecf4",size:10},
+    hovertemplate:"%{label}: \u00a3%{value:,.0f}<br>%{percent}<extra></extra>"
+  }];
+  var layout = darkLayout({
+    margin:{t:10,r:10,b:10,l:10},
+    annotations:[{text:"\u00a3"+(total/1e6).toFixed(2)+"M",x:.5,y:.5,font:{size:16,color:"#e8ecf4"},showarrow:false}],
+    showlegend:true,
+    legend:{orientation:"v",y:.5,x:1.02,font:{color:"#8892b0",size:10},bgcolor:"transparent"}
+  });
+  Plotly.newPlot("chart-category-donut", trace, layout, plotCfg);
+})();
+
+/* ============================================================
+   CHART 3 - Revenue by Region Stacked Bar
+============================================================ */
+(function() {
+  var traces = REGIONS.map(function(reg) {
+    return {
+      name:reg, x:MONTHS,
+      y:MPFX.map(function(m){ return sumField(filterRows(function(r){ return r[0]===m && r[1]===reg; }), 3) / 1000; }),
+      type:"bar", marker:{color:RCOLS[reg]},
+      hovertemplate:reg+": \u00a3%{y:.0f}K<extra></extra>"
+    };
+  });
+  var layout = darkLayout({
+    barmode:"stack",
+    legend:{orientation:"h",y:1.14,x:.5,xanchor:"center",bgcolor:"transparent",font:{color:"#8892b0",size:10}},
+    xaxis:axisStyle(),
+    yaxis:axisStyle({tickprefix:"\u00a3",ticksuffix:"K"})
+  });
+  Plotly.newPlot("chart-region-bar", traces, layout, plotCfg);
+})();
+
+/* ============================================================
+   CHART 4 - Profit Margin by Category (grouped bars)
+============================================================ */
+(function() {
+  var gmPct = CATS.map(function(c) {
+    var rows = filterRows(function(r){ return r[2]===c; });
+    var rev  = sumField(rows,3), cogs = sumField(rows,6);
+    return +((rev-cogs)/rev*100).toFixed(1);
+  });
+  var ebitPct = CATS.map(function(c) {
+    var rows = filterRows(function(r){ return r[2]===c; });
+    var rev  = sumField(rows,3), cogs = sumField(rows,6), opex = sumField(rows,7);
+    return +((rev-cogs-opex)/rev*100).toFixed(1);
+  });
+  var traces = [
+    {x:CATS,y:gmPct,  name:"Gross Margin %", type:"bar",marker:{color:C.accent}, hovertemplate:"GM: %{y:.1f}%<extra></extra>"},
+    {x:CATS,y:ebitPct,name:"EBITDA Margin %",type:"bar",marker:{color:C.accent2},hovertemplate:"EBITDA: %{y:.1f}%<extra></extra>"}
+  ];
+  var layout = darkLayout({
+    barmode:"group",
+    legend:{orientation:"h",y:1.14,x:.5,xanchor:"center",bgcolor:"transparent",font:{color:"#8892b0",size:10}},
+    xaxis:axisStyle(),
+    yaxis:axisStyle({ticksuffix:"%",range:[0,65]})
+  });
+  Plotly.newPlot("chart-margin-category", traces, layout, plotCfg);
+})();
+
+/* ============================================================
+   CHART 5 - Waterfall P&L Bridge
+============================================================ */
+(function() {
+  var totRev  = sumField(RAW,3);
+  var totCogs = sumField(RAW,6);
+  var gp      = totRev - totCogs;
+  var totOpex = sumField(RAW,7);
+  var ebitda  = gp - totOpex;
+  function M(v){ return +(v/1e6).toFixed(3); }
+
+  var trace = [{
+    type:"waterfall", orientation:"v",
+    measure:["absolute","relative","total","relative","total"],
+    x:["Revenue","Less COGS","Gross Profit","Less OpEx","EBITDA"],
+    y:[M(totRev),-M(totCogs),M(gp),-M(totOpex),M(ebitda)],
+    connector:{line:{color:"#2e3350",width:1}},
+    increasing:{marker:{color:C.green}},
+    decreasing:{marker:{color:C.red}},
+    totals:{marker:{color:C.accent}},
+    textposition:"outside",
+    text:["\u00a3"+M(totRev)+"M","-\u00a3"+M(totCogs)+"M","\u00a3"+M(gp)+"M","-\u00a3"+M(totOpex)+"M","\u00a3"+M(ebitda)+"M"],
+    textfont:{color:"#e8ecf4",size:10},
+    hovertemplate:"%{x}: \u00a3%{y:.3f}M<extra></extra>"
+  }];
+  var layout = darkLayout({
+    margin:{t:28,r:16,b:50,l:60},
+    xaxis:axisStyle(),
+    yaxis:axisStyle({tickprefix:"\u00a3",ticksuffix:"M"})
+  });
+  Plotly.newPlot("chart-waterfall", trace, layout, plotCfg);
+})();
+
+/* ============================================================
+   CHART 6 - Budget Variance % by Region (RAG coloured)
+============================================================ */
+(function() {
+  var varPct = REGIONS.map(function(reg) {
+    var rows = filterRows(function(r){ return r[1]===reg; });
+    var act  = sumField(rows,3), bud = sumField(rows,4);
+    return +((act-bud)/bud*100).toFixed(2);
+  });
+  var colors = varPct.map(function(v){ return v>=2?C.green:v>=-2?C.amber:C.red; });
+  var trace = [{
+    x:REGIONS, y:varPct, type:"bar",
+    marker:{color:colors},
+    text:varPct.map(function(v){ return (v>0?"+":"")+v.toFixed(1)+"%"; }),
+    textposition:"outside",
+    textfont:{color:"#e8ecf4",size:11},
+    hovertemplate:"%{x}: %{y:+.2f}%<extra></extra>",
+    name:"Budget Variance %"
+  }];
+  var layout = darkLayout({
+    margin:{t:32,r:16,b:50,l:60},
+    xaxis:axisStyle(),
+    yaxis:axisStyle({ticksuffix:"%",zeroline:true,zerolinecolor:"#8892b0",zerolinewidth:1}),
+    shapes:[{
+      type:"rect",x0:-.5,x1:3.5,y0:-2,y1:2,
+      fillcolor:"rgba(243,156,18,.08)",line:{width:0},layer:"below"
+    }]
+  });
+  Plotly.newPlot("chart-variance-bar", trace, layout, plotCfg);
+})();
+
+/* ============================================================
+   CHART 7 - Heatmap: Region x Month
+============================================================ */
+(function() {
+  var z = REGIONS.map(function(reg) {
+    return MPFX.map(function(m) {
+      return sumField(filterRows(function(r){ return r[0]===m && r[1]===reg; }), 3) / 1000;
+    });
+  });
+  var trace = [{
+    z:z, x:MONTHS, y:REGIONS,
+    type:"heatmap",
+    colorscale:[["0","#1a1d27"],["0.5","#2e5fa3"],["1","#4f8ef7"]],
+    showscale:true,
+    colorbar:{tickfont:{color:"#8892b0",size:9},tickprefix:"\u00a3",ticksuffix:"K",len:.9},
+    hovertemplate:"%{y} \u00b7 %{x}: \u00a3%{z:.0f}K<extra></extra>",
+    texttemplate:"\u00a3%{z:.0f}K",
+    textfont:{color:"#fff",size:9}
+  }];
+  var layout = darkLayout({
+    margin:{t:10,r:80,b:40,l:90},
+    xaxis:axisStyle({side:"bottom"}),
+    yaxis:axisStyle()
+  });
+  Plotly.newPlot("chart-heatmap", trace, layout, plotCfg);
+})();
+
+/* ============================================================
+   CHART 8 - OpEx by Region Grouped Bar
+============================================================ */
+(function() {
+  var traces = REGIONS.map(function(reg) {
+    return {
+      name:reg, x:MONTHS,
+      y:MPFX.map(function(m){ return sumField(filterRows(function(r){ return r[0]===m && r[1]===reg; }), 7) / 1000; }),
+      type:"bar", marker:{color:RCOLS[reg]},
+      hovertemplate:reg+": \u00a3%{y:.0f}K<extra></extra>"
+    };
+  });
+  var layout = darkLayout({
+    barmode:"group",
+    legend:{orientation:"h",y:1.14,x:.5,xanchor:"center",bgcolor:"transparent",font:{color:"#8892b0",size:10}},
+    xaxis:axisStyle(),
+    yaxis:axisStyle({tickprefix:"\u00a3",ticksuffix:"K"})
+  });
+  Plotly.newPlot("chart-opex", traces, layout, plotCfg);
+})();
+
+/* ============================================================
+   TABLE - Budget Variance by Region x Month
+============================================================ */
+(function() {
+  var tbl = document.getElementById("variance-table");
+  var html = "<thead><tr><th>Region</th><th>Category</th>";
+  MONTHS.forEach(function(m){ html += "<th>"+m+" Actual</th><th>"+m+" Budget</th><th>Var%</th>"; });
+  html += "<th>Total Actual</th><th>RAG</th></tr></thead><tbody>";
+
+  var pairs = [
+    ["London","Electronics"],["London","Clothing"],
+    ["South East","Electronics"],["South East","Food & Bev"],
+    ["North West","Electronics"],["North West","Clothing"],
+    ["Midlands","Electronics"],["Midlands","Food & Bev"]
+  ];
+
+  pairs.forEach(function(pair) {
+    var reg = pair[0], cat = pair[1];
+    var rows = MPFX.map(function(m){ return RAW.filter(function(r){ return r[0]===m && r[1]===reg && r[2]===cat; })[0]; });
+    var totalAct = rows.reduce(function(s,r){ return s+r[3]; }, 0);
+    var totalBud = rows.reduce(function(s,r){ return s+r[4]; }, 0);
+    var totalVar = (totalAct-totalBud)/totalBud*100;
+    var ragCls  = totalVar>=2?"rag-green":totalVar>=-2?"rag-amber":"rag-red";
+    var dotCls  = totalVar>=2?"dot-green":totalVar>=-2?"dot-amber":"dot-red";
+    var ragLabel= totalVar>=2?"Green \u25b2":totalVar>=-2?"Amber \u25cf":"Red \u25bc";
+
+    html += "<tr><td><strong>"+reg+"</strong></td><td style=\"color:#8892b0\">"+cat+"</td>";
+    rows.forEach(function(r) {
+      var v = (r[3]-r[4])/r[4]*100;
+      var cls = v>=2?"rag-green":v>=-2?"rag-amber":"rag-red";
+      html += "<td>\u00a3"+(r[3]/1000).toFixed(0)+"K</td><td style=\"color:#5a6278\">\u00a3"+(r[4]/1000).toFixed(0)+"K</td><td class=\""+cls+"\">"+(v>0?"+":"")+v.toFixed(1)+"%</td>";
+    });
+    html += "<td><strong>\u00a3"+(totalAct/1000).toFixed(0)+"K</strong></td>";
+    html += "<td class=\""+ragCls+"\"><span class=\"rag-dot "+dotCls+"\"></span>"+ragLabel+"</td></tr>";
+  });
+
+  html += "</tbody>";
+  tbl.innerHTML = html;
+})();
+</script>
+</body>
+</html>
